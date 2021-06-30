@@ -298,6 +298,7 @@ static cJSON_bool parse_number(cJSON * const item, parse_buffer * const input_bu
      * This also takes care of '\0' not necessarily being available for marking the end of the input */
     for (i = 0; (i < (sizeof(number_c_string) - 1)) && can_access_at_index(input_buffer, i); i++)
     {
+        after_end ++; // count the number of character to set buffer.offset for the next item
         switch (buffer_at_offset(input_buffer)[i])
         {
             case '0':
@@ -327,11 +328,14 @@ static cJSON_bool parse_number(cJSON * const item, parse_buffer * const input_bu
     }
 loop_end:
     number_c_string[i] = '\0';
-#ifdef GPRS_CSDK
+//sinse we are using the GPRS_SDK anyways the following check is disabled and the first condition is copied out
+/*#ifdef GPRS_CSDK
     number = atof((const char*)number_c_string);
 #else
     number = strtod((const char*)number_c_string, (char**)&after_end);
-#endif
+#endif*/
+
+    number = atof((const char*)number_c_string);
     if (number_c_string == after_end)
     {
         return false; /* parse_error */
@@ -354,8 +358,9 @@ loop_end:
     }
 
     item->type = cJSON_Number;
-
-    input_buffer->offset += (size_t)(after_end - number_c_string);
+    after_end--; //step back one character to get the coma marker
+    input_buffer->offset += (size_t)after_end; // set next point
+    //input_buffer->offset += (size_t)(after_end - number_c_string);// this line causes an over flow because after_end oreginaly is equalto NULL
     return true;
 }
 
